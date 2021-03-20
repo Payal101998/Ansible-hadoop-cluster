@@ -1,0 +1,75 @@
+- hosts: datanode
+  vars:
+            - jdk_package: "jdk-8u171-linux-x64.rpm"
+            - hadoop_package: "hadoop-1.2.1-1.x86_64.rpm"
+  vars_prompt:
+            - name: "dn_dir"
+              prompt: "Enter The Directory Name For DataNode"
+              private: no
+
+            - name: "mn_ip"
+              prompt: "Enter The Master Node IP"
+              private: no
+
+            - name: "mn_port_no"
+              prompt: "Enter The Master Node Port Number"
+              private: no          
+  tasks:
+            - name: "Copy JDk Package"
+              copy:
+                      src: "/Task11.1/{{ jdk_package }}"
+                      dest: "/home/ec2-user/"
+
+            - name: "Copy Hadoop Package"
+              copy:
+                      src: "/Task11.1/{{ hadoop_package }}"
+                      dest: "/home/ec2-user/"
+
+            - name: "Install JDK"
+              command: "rpm -ivh {{ jdk_package }}"
+              register: jdk
+            - debug:
+                  var: jdk
+
+            - name: "Install Hadoop"
+              command: "rpm -ivh {{ hadoop_package }} --force"
+              register: hadoop
+            - debug:
+                  var: hadoop 
+
+            - name: "Create Directory for Datanode"
+              file:
+                      path: "/{{ dn_dir }}"
+                      state: directory
+
+            - name: "Configure hdfs-site.xml file"
+              blockinfile:
+                      path: "/etc/hadoop/hdfs-site.xml"
+                      insertafter: "<configuration>"
+                      block:
+                           <property>
+                           <name>dfs.data.dir</name>
+                           <value>/{{ dn_dir }}</value>
+                           </property>
+           
+            - name: "Configure core-site.xml file"
+              blockinfile:
+                     path: "/etc/hadoop/core-site.xml"
+                     insertafter: "<configuration>"
+                     block:
+                          <property>
+                          <name>fs.default.name</name>
+                          <value>hdfs://{{ mn_ip }}:{{ mn_port_no }}</value>
+                          </property>
+                     
+            - name: "Start Hadoop Daemon Service"
+              command: "hadoop-daemon.sh start datanode"
+              
+            - name: "Check Whether service start or not"
+              command: "jps"
+              register: jps 
+
+            - debug:
+                 var: jps
+
+              
